@@ -76,7 +76,7 @@ python main.py --source 0 --model yolov8s.pt --img-size 640
 # High accuracy (requires GPU)
 python main.py --source 0 --model yolov8x.pt --img-size 1280
 
-# Test the new YOLO26 (edge-optimized)
+# Test YOLO26 (edge-optimized)
 python main.py --source 0 --model yolo26s.pt --img-size 640
 
 # Custom local weight
@@ -96,7 +96,7 @@ This enables:
 - counting
 - behavior analysis
 
-Tracking is handled by ByteTrack, integrated directly into YOLOv8
+Tracking is handled by ByteTrack, integrated directly into YOLO
 
 ---
 

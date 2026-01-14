@@ -181,7 +181,7 @@ class DroneDetectionGUI:
         model_frame.grid(row=row, column=0, sticky=tk.EW, pady=(0, 15))
         row += 1
         
-        self.model_var = tk.StringVar(value="yolov8s.pt")
+        self.model_var = tk.StringVar(value="yolo26m.pt")
         models = [
             "yolov8n.pt", "yolov8s.pt", "yolov8m.pt", "yolov8l.pt", "yolov8x.pt",
             "yolo11n.pt", "yolo11s.pt", "yolo11m.pt", "yolo11l.pt", "yolo11x.pt",
@@ -198,8 +198,8 @@ class DroneDetectionGUI:
         conf_frame.grid(row=row, column=0, sticky=tk.EW, pady=(0, 15))
         row += 1
         
-        self.conf_var = tk.DoubleVar(value=0.70)
-        self.conf_label = ttk.Label(conf_frame, text="0.70", width=5)
+        self.conf_var = tk.DoubleVar(value=0.50)
+        self.conf_label = ttk.Label(conf_frame, text="0.50", width=5)
         self.conf_label.pack(side=tk.RIGHT)
         ttk.Scale(conf_frame, from_=0.1, to=0.9, variable=self.conf_var, orient=tk.HORIZONTAL,
                   command=self.update_conf_label).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
