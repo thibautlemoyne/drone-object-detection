@@ -33,13 +33,9 @@ python main.py --source rtsp://DRONE_IP:PORT/stream
 
 ### Advanced options
 ```
---model {yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt}
-    Model size (default: yolov8n.pt)
-    - yolov8n: Nano (fastest, least accurate)
-    - yolov8s: Small (recommended for CPU)
-    - yolov8m: Medium
-    - yolov8l: Large
-    - yolov8x: XLarge (most accurate, requires GPU)
+--model WEIGHTS
+    Any YOLO weight name or path (default: yolov8s.pt)
+    Examples: yolov8s.pt, yolo26s.pt, yolo11n.pt, custom.pt
 
 --img-size SIZE
     Inference image size (default: 640)
@@ -60,6 +56,12 @@ python main.py --source 0 --model yolov8s.pt --img-size 640
 
 # High accuracy (requires GPU)
 python main.py --source 0 --model yolov8x.pt --img-size 1280
+
+# Test the new YOLO26 (edge-optimized)
+python main.py --source 0 --model yolo26s.pt --img-size 640
+
+# Custom local weight
+python main.py --source 0 --model /path/to/your/custom.pt --img-size 640
 
 # Custom settings
 python main.py --source video.mp4 --model yolov8m.pt --img-size 800 --conf 0.5
@@ -94,5 +96,6 @@ Press Q to quit.
 ---
 
 ## Notes
-- Default model: YOLOv8x (maximum accuracy)
-- For higher FPS, reduce img_size or use YOLOv8l / YOLOv8n
+- Default model: yolov8s.pt (balanced accuracy/speed, works on CPU)
+- You can pass any Ultralytics-compatible .pt weight (yolov8/11/26 or custom trained)
+- For higher FPS, reduce img_size or use n/s variants; x variants are heaviest and prefer GPU.

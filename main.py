@@ -19,8 +19,7 @@ def parse_args():
         "--model",
         type=str,
         default="yolov8s.pt",
-        choices=["yolov8n.pt", "yolov8s.pt", "yolov8m.pt", "yolov8l.pt", "yolov8x.pt"],
-        help="YOLOv8 model size: n(nano), s(small), m(medium), l(large), x(xlarge)"
+        help="Path or name of a YOLO weight file (.pt), e.g., yolov8s.pt, yolo26s.pt, or a custom path"
     )
     parser.add_argument(
         "--img-size",
