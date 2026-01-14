@@ -1,6 +1,6 @@
 # Drone Object Detection & Tracking
 
-Real-time object detection and multi-object tracking based on YOLOv8 + ByteTrack
+Real-time object detection and multi-object tracking based on YOLO + ByteTrack
 
 ---
 
