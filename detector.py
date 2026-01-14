@@ -9,8 +9,8 @@ class ObjectDetector:
 
     def __init__(
         self,
-        model_name="yolov8x.pt",
-        conf_threshold=0.35,
+        model_name="yolo26m.pt",
+        conf_threshold=0.50,
         img_size=1280
     ):
         """
