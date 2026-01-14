@@ -20,7 +20,7 @@ from detector import ObjectDetector
 class DroneDetectionGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Drone Object Detection & Tracking Pro")
+        self.root.title("Drone Computer Vision")
         self.root.geometry("1600x900")
         self.root.configure(bg='#2b2b2b')
         
@@ -103,7 +103,7 @@ class DroneDetectionGUI:
         self.status_label.pack(anchor=tk.W)
         
         tk.Label(status_frame, text="FPS:", bg='#1e1e1e', fg='white', font=("Arial", 10)).pack(anchor=tk.W, pady=(5, 0))
-        self.fps_label = tk.Label(status_frame, text="0.0", bg='#1e1e1e', fg='#00ff00', font=("Arial", 12, "bold"))
+        self.fps_label = tk.Label(status_frame, text="0.0", bg='#1e1e1e', fg='yellow', font=("Arial", 14, "bold"))
         self.fps_label.pack(anchor=tk.W)
         
         # Quick actions
@@ -198,8 +198,8 @@ class DroneDetectionGUI:
         conf_frame.grid(row=row, column=0, sticky=tk.EW, pady=(0, 15))
         row += 1
         
-        self.conf_var = tk.DoubleVar(value=0.35)
-        self.conf_label = ttk.Label(conf_frame, text="0.35", width=5)
+        self.conf_var = tk.DoubleVar(value=0.70)
+        self.conf_label = ttk.Label(conf_frame, text="0.70", width=5)
         self.conf_label.pack(side=tk.RIGHT)
         ttk.Scale(conf_frame, from_=0.1, to=0.9, variable=self.conf_var, orient=tk.HORIZONTAL,
                   command=self.update_conf_label).pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
