@@ -15,6 +15,25 @@ def parse_args():
         default="0",
         help="Video source: webcam index (0), video file path, or RTSP URL"
     )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="yolov8s.pt",
+        choices=["yolov8n.pt", "yolov8s.pt", "yolov8m.pt", "yolov8l.pt", "yolov8x.pt"],
+        help="YOLOv8 model size: n(nano), s(small), m(medium), l(large), x(xlarge)"
+    )
+    parser.add_argument(
+        "--img-size",
+        type=int,
+        default=640,
+        help="Inference image size (default: 640). Larger = more accurate but slower"
+    )
+    parser.add_argument(
+        "--conf",
+        type=float,
+        default=0.35,
+        help="Confidence threshold for detections (default: 0.35)"
+    )
     return parser.parse_args()
 
 
@@ -27,9 +46,9 @@ def main():
     cap = open_video_source(source)
 
     detector = ObjectDetector(
-        model_name="yolov8x.pt",
-        conf_threshold=0.35,
-        img_size=1280
+        model_name=args.model,
+        conf_threshold=args.conf,
+        img_size=args.img_size
     )
 
     while cap.isOpened():

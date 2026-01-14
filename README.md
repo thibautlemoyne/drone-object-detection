@@ -31,6 +31,40 @@ python main.py --source path/to/video.mp4
 ### Drone RTSP stream
 python main.py --source rtsp://DRONE_IP:PORT/stream
 
+### Advanced options
+```
+--model {yolov8n.pt, yolov8s.pt, yolov8m.pt, yolov8l.pt, yolov8x.pt}
+    Model size (default: yolov8n.pt)
+    - yolov8n: Nano (fastest, least accurate)
+    - yolov8s: Small (recommended for CPU)
+    - yolov8m: Medium
+    - yolov8l: Large
+    - yolov8x: XLarge (most accurate, requires GPU)
+
+--img-size SIZE
+    Inference image size (default: 640)
+    Higher = more accurate but slower
+
+--conf THRESHOLD
+    Confidence threshold (default: 0.35)
+    Range: 0.0 to 1.0
+```
+
+### Examples
+```
+# CPU-friendly (fast)
+python main.py --source 0 --model yolov8n.pt --img-size 480
+
+# Balanced (default, recommended)
+python main.py --source 0 --model yolov8s.pt --img-size 640
+
+# High accuracy (requires GPU)
+python main.py --source 0 --model yolov8x.pt --img-size 1280
+
+# Custom settings
+python main.py --source video.mp4 --model yolov8m.pt --img-size 800 --conf 0.5
+```
+
 ---
 
 ## Tracking

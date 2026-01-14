@@ -23,10 +23,9 @@ class ObjectDetector:
         img_size : int
             Inference image size
         """
-        if not torch.cuda.is_available():
-            raise RuntimeError("CUDA is not available. A GPU is required.")
-
-        self.device = "cuda"
+        # Use CUDA if available, otherwise use CPU
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        
         self.model = YOLO(model_name).to(self.device)
         self.conf_threshold = conf_threshold
         self.img_size = img_size
