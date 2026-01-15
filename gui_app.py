@@ -12,6 +12,7 @@ from datetime import datetime
 import json
 from collections import defaultdict, deque
 import numpy as np
+from queue import Queue, Empty
 
 from video_source import open_video_source
 from detector import ObjectDetector
@@ -58,6 +59,11 @@ class DroneDetectionGUI:
         
         # Class filtering
         self.all_class_names = []
+        
+        # Multi-threading for display
+        self.frame_queue = Queue(maxsize=30)  # Buffer for 30 frames
+        self.display_thread = None
+        self.display_running = False
         
         self.setup_ui()
         
@@ -463,12 +469,24 @@ class DroneDetectionGUI:
             self.frame_count = 0
             self.last_time = time.time()
             
+            # Clear queue
+            while not self.frame_queue.empty():
+                try:
+                    self.frame_queue.get_nowait()
+                except Empty:
+                    break
+            
             # Update UI
             self.start_btn.config(state=tk.DISABLED)
             self.stop_btn.config(state=tk.NORMAL)
             self.pause_btn.config(state=tk.NORMAL)
             self.record_btn.config(state=tk.NORMAL)
             self.status_label.config(text=f"Running ({self.detector.device.upper()})", fg='#28a745')
+            
+            # Start threads
+            self.display_running = True
+            self.display_thread = threading.Thread(target=self.display_loop, daemon=True)
+            self.display_thread.start()
             
             threading.Thread(target=self.process_frames, daemon=True).start()
             
@@ -479,6 +497,11 @@ class DroneDetectionGUI:
     def stop_detection(self):
         """Stop detection"""
         self.is_running = False
+        self.display_running = False
+        
+        # Wait for threads to finish
+        if self.display_thread and self.display_thread.is_alive():
+            self.display_thread.join(timeout=2.0)
         
         if self.cap:
             self.cap.release()
@@ -734,13 +757,33 @@ class DroneDetectionGUI:
                 self.root.after(0, lambda: self.fps_label.config(text=f"{self.fps:.1f}"))
                 self.root.after(0, self.update_stats)
             
-            self.display_frame(annotated_frame)
+            # Put frame in queue for display thread (non-blocking)
+            try:
+                self.frame_queue.put_nowait(annotated_frame)
+            except:
+                # Queue full, skip this frame
+                pass
         
         if self.cap:
             self.cap.release()
     
-    def display_frame(self, frame):
-        """Display on canvas"""
+    def display_loop(self):
+        """Separate thread for smooth display from frame cache"""
+        while self.display_running:
+            try:
+                # Get frame from queue (blocking with timeout)
+                frame = self.frame_queue.get(timeout=0.1)
+                
+                # Display in main thread
+                self.root.after(0, self._display_frame_internal, frame)
+                
+            except Empty:
+                # No frame available, continue
+                time.sleep(0.01)
+                continue
+    
+    def _display_frame_internal(self, frame):
+        """Internal method to display frame (runs in main thread)"""
         w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
         if w > 1 and h > 1:
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
@@ -755,6 +798,10 @@ class DroneDetectionGUI:
             img = ImageTk.PhotoImage(image=Image.fromarray(frame_resized))
             self.canvas.create_image(w // 2, h // 2, image=img, anchor=tk.CENTER)
             self.canvas.imgtk = img
+    
+    def display_frame(self, frame):
+        """Legacy method - now redirects to internal display"""
+        self._display_frame_internal(frame)
     
     def update_stats(self):
         """Update stats display"""
