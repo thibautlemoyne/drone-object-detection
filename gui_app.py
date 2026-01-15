@@ -65,10 +65,15 @@ class DroneDetectionGUI:
         self.display_thread = None
         self.display_running = False
         
+        # Performance optimizations
+        self.frame_skip = 1  # Process every Nth frame
+        self.use_half_precision = True  # FP16 for GPU speed
+        self.last_detection_results = None
+        self.frames_since_detection = 0
+        
         self.setup_ui()
         
     def setup_ui(self):
-        """Build modern tabbed GUI layout"""
         # Style configuration
         style = ttk.Style()
         style.theme_use('clam')
@@ -108,10 +113,6 @@ class DroneDetectionGUI:
         self.status_label = tk.Label(status_frame, text="Ready", bg='#1e1e1e', fg='#28a745', font=("Arial", 12, "bold"))
         self.status_label.pack(anchor=tk.W)
         
-        tk.Label(status_frame, text="FPS:", bg='#1e1e1e', fg='white', font=("Arial", 10)).pack(anchor=tk.W, pady=(5, 0))
-        self.fps_label = tk.Label(status_frame, text="0.0", bg='#1e1e1e', fg='yellow', font=("Arial", 14, "bold"))
-        self.fps_label.pack(anchor=tk.W)
-        
         # Quick actions
         action_frame = tk.Frame(top_bar, bg='#1e1e1e')
         action_frame.pack(side=tk.RIGHT, padx=20, pady=10)
@@ -136,6 +137,7 @@ class DroneDetectionGUI:
         self.setup_config_tab()
         self.setup_filters_tab()
         self.setup_advanced_tab()
+        self.setup_performance_tab()
         
         # Right: Video display
         video_frame = tk.Frame(content_frame, bg='black')
@@ -345,6 +347,83 @@ class DroneDetectionGUI:
         tab.columnconfigure(0, weight=1)
         tab.rowconfigure(9, weight=1)
     
+    def setup_performance_tab(self):
+        """Performance optimization tab"""
+        tab = ttk.Frame(self.notebook, padding=10)
+        self.notebook.add(tab, text="⚡ Performance")
+        
+        row = 0
+        
+        # Frame Skip
+        ttk.Label(tab, text="Smart Frame Processing", font=("Arial", 11, "bold")).grid(row=row, column=0, sticky=tk.W, pady=(0, 5))
+        row += 1
+        
+        skip_frame = ttk.Frame(tab)
+        skip_frame.grid(row=row, column=0, sticky=tk.EW, pady=(0, 5))
+        row += 1
+        
+        ttk.Label(skip_frame, text="Process every:").pack(side=tk.LEFT)
+        self.frame_skip_var = tk.IntVar(value=1)
+        skip_combo = ttk.Combobox(skip_frame, textvariable=self.frame_skip_var,
+                                  values=[1, 2, 3, 5],
+                                  state="readonly", width=10)
+        skip_combo.pack(side=tk.LEFT, padx=5)
+        ttk.Label(skip_frame, text="frame(s)").pack(side=tk.LEFT)
+        skip_combo.bind("<<ComboboxSelected>>", self.on_performance_change)
+        
+        ttk.Label(tab, text="• 1 = Every frame (slowest, best)", font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=1)
+        row += 1
+        ttk.Label(tab, text="• 2 = Every 2nd frame (2x faster)", font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=1)
+        row += 1
+        ttk.Label(tab, text="• 3 = Every 3rd frame (3x faster)", font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=1)
+        row += 1
+        ttk.Label(tab, text="• 5 = Every 5th frame (5x faster)", font=("Arial", 8)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=(1, 15))
+        row += 1
+        
+        # GPU Optimization
+        ttk.Label(tab, text="GPU Acceleration", font=("Arial", 11, "bold")).grid(row=row, column=0, sticky=tk.W, pady=(0, 5))
+        row += 1
+        
+        self.half_precision_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(tab, text="FP16 Half Precision (2x faster on GPU)",
+                       variable=self.half_precision_var,
+                       command=self.on_performance_change).grid(row=row, column=0, sticky=tk.W, pady=5)
+        row += 1
+        
+        ttk.Label(tab, text="Requires CUDA GPU", 
+                 font=("Arial", 8), foreground="gray").grid(row=row, column=0, sticky=tk.W, padx=20, pady=(0, 15))
+        row += 1
+        
+        # Preprocessing
+        ttk.Label(tab, text="Preprocessing Optimization", font=("Arial", 11, "bold")).grid(row=row, column=0, sticky=tk.W, pady=(0, 5))
+        row += 1
+        
+        self.fast_resize_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(tab, text="Fast Resize (INTER_NEAREST)",
+                       variable=self.fast_resize_var,
+                       command=self.on_performance_change).grid(row=row, column=0, sticky=tk.W, pady=5)
+        row += 1
+        
+        ttk.Label(tab, text="Faster but slightly less smooth.", 
+                 font=("Arial", 8), foreground="gray").grid(row=row, column=0, sticky=tk.W, padx=20, pady=(0, 15))
+        row += 1
+        
+        # Performance stats
+        ttk.Label(tab, text="Performance Monitor", font=("Arial", 11, "bold")).grid(row=row, column=0, sticky=tk.W, pady=(0, 5))
+        row += 1
+        
+        self.perf_stats = tk.Text(tab, height=8, width=35, font=("Courier", 9), bg='#1e1e1e', fg='#00ff00')
+        self.perf_stats.grid(row=row, column=0, sticky=tk.NSEW, pady=(0, 5))
+        row += 1
+        
+        tab.columnconfigure(0, weight=1)
+        tab.rowconfigure(row-1, weight=1)
+    
+    def on_performance_change(self, event=None):
+        """Update performance settings"""
+        self.frame_skip = self.frame_skip_var.get()
+        self.use_half_precision = self.half_precision_var.get()
+    
     def populate_class_checkboxes(self):
         """Populate class listbox with COCO classes"""
         self.class_listbox_widget.delete(0, tk.END)
@@ -460,6 +539,14 @@ class DroneDetectionGUI:
                 conf_threshold=self.conf_var.get(),
                 img_size=self.img_size_var.get()
             )
+            
+            # Apply FP16 if GPU available and enabled
+            if self.use_half_precision and self.detector.device == "cuda":
+                try:
+                    self.detector.model.model.half()  # Convert to FP16
+                    self.status_label.config(text="Model loaded (FP16 GPU mode)", fg='#17a2b8')
+                except:
+                    pass
             
             # Populate class filters
             self.populate_class_checkboxes()
@@ -653,7 +740,10 @@ class DroneDetectionGUI:
         return frame_x, frame_y
     
     def process_frames(self):
-        """Main loop"""
+        """Main loop with performance optimizations"""
+        detection_time_samples = deque(maxlen=30)
+        preprocess_time_samples = deque(maxlen=30)
+        
         while self.is_running:
             if self.is_paused:
                 time.sleep(0.1)
@@ -667,11 +757,30 @@ class DroneDetectionGUI:
                     self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
                     continue
             
-            # Apply enhancement
-            frame = self.apply_enhancement(frame)
+            # Smart frame skipping
+            self.frames_since_detection += 1
+            should_detect = (self.frames_since_detection >= self.frame_skip)
             
-            # Detection
-            results = self.detector.track(frame)
+            # Preprocessing optimization
+            preprocess_start = time.time()
+            frame = self.apply_enhancement(frame)
+            preprocess_time = time.time() - preprocess_start
+            preprocess_time_samples.append(preprocess_time * 1000)
+            
+            if should_detect:
+                # Run detection
+                detection_start = time.time()
+                results = self.detector.track(frame)
+                detection_time = time.time() - detection_start
+                detection_time_samples.append(detection_time * 1000)
+                
+                self.frames_since_detection = 0
+                self.last_detection_results = results
+            else:
+                # Use last results (tracking continues internally)
+                results = self.last_detection_results
+                if results is None:
+                    continue
             
             # Filter by enabled classes
             enabled_classes = self.get_enabled_classes()
@@ -756,6 +865,12 @@ class DroneDetectionGUI:
                 # Update UI in main thread
                 self.root.after(0, lambda: self.fps_label.config(text=f"{self.fps:.1f}"))
                 self.root.after(0, self.update_stats)
+                
+                # Update performance stats
+                if detection_time_samples and preprocess_time_samples:
+                    avg_detect = sum(detection_time_samples) / len(detection_time_samples)
+                    avg_preprocess = sum(preprocess_time_samples) / len(preprocess_time_samples)
+                    self.root.after(0, lambda: self.update_performance_stats(avg_detect, avg_preprocess))
             
             # Put frame in queue for display thread (non-blocking)
             try:
@@ -811,6 +926,25 @@ class DroneDetectionGUI:
             stats += f"ID {obj_id}: {s['class']}\n"
         self.stats_text.delete(1.0, tk.END)
         self.stats_text.insert(1.0, stats)
+    
+    def update_performance_stats(self, avg_detect_ms, avg_preprocess_ms):
+        """Update performance statistics"""
+        total_ms = avg_detect_ms + avg_preprocess_ms
+        theoretical_fps = 1000 / total_ms if total_ms > 0 else 0
+        
+        stats = f"=== Performance Stats ===\n"
+        stats += f"FPS: {self.fps:.1f}\n"
+        stats += f"\n--- Timing (ms) ---\n"
+        stats += f"Detection: {avg_detect_ms:.1f}\n"
+        stats += f"Preprocess: {avg_preprocess_ms:.1f}\n"
+        stats += f"Total: {total_ms:.1f}\n"
+        stats += f"\n--- Settings ---\n"
+        stats += f"Frame Skip: 1/{self.frame_skip}\n"
+        stats += f"FP16: {'ON' if self.use_half_precision else 'OFF'}\n"
+        stats += f"Device: {self.detector.device.upper() if self.detector else 'N/A'}\n"
+        
+        self.perf_stats.delete(1.0, tk.END)
+        self.perf_stats.insert(1.0, stats)
     
     def apply_enhancement(self, frame):
         """Apply enhancement modes"""
