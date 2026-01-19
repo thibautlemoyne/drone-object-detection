@@ -1,7 +1,3 @@
-"""
-GUI Application for Drone Object Detection & Tracking
-Modern interface with tabbed layout
-"""
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import cv2
@@ -863,7 +859,6 @@ class DroneDetectionGUI:
                 self.fps = 10 / (current_time - self.last_time)
                 self.last_time = current_time
                 # Update UI in main thread
-                self.root.after(0, lambda: self.fps_label.config(text=f"{self.fps:.1f}"))
                 self.root.after(0, self.update_stats)
                 
                 # Update performance stats
@@ -930,7 +925,6 @@ class DroneDetectionGUI:
     def update_performance_stats(self, avg_detect_ms, avg_preprocess_ms):
         """Update performance statistics"""
         total_ms = avg_detect_ms + avg_preprocess_ms
-        theoretical_fps = 1000 / total_ms if total_ms > 0 else 0
         
         stats = f"=== Performance Stats ===\n"
         stats += f"FPS: {self.fps:.1f}\n"
