@@ -522,6 +522,10 @@ class DroneDetectionGUI:
             source = self.source_var.get()
             source = int(source) if source.isdigit() else source
             
+            # Show loading message
+            self.status_label.config(text="Loading model...", fg='#ffc107')
+            self.root.update()
+            
             self.cap = open_video_source(source)
             
             ret, frame = self.cap.read()
@@ -530,19 +534,27 @@ class DroneDetectionGUI:
                 self.heatmap_data = np.zeros((self.frame_height, self.frame_width), dtype=np.float32)
                 self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             
+            # Load model in main thread (critical for thread safety)
             self.detector = ObjectDetector(
                 model_name=self.model_var.get(),
                 conf_threshold=self.conf_var.get(),
                 img_size=self.img_size_var.get()
             )
             
+            # Warmup: run one dummy detection to initialize everything
+            dummy_frame = np.zeros((640, 640, 3), dtype=np.uint8)
+            _ = self.detector.track(dummy_frame)
+            
             # Apply FP16 if GPU available and enabled
             if self.use_half_precision and self.detector.device == "cuda":
                 try:
                     self.detector.model.model.half()  # Convert to FP16
+                    # Run another warmup with FP16
+                    _ = self.detector.track(dummy_frame)
                     self.status_label.config(text="Model loaded (FP16 GPU mode)", fg='#17a2b8')
-                except:
-                    pass
+                    self.root.update()
+                except Exception as e:
+                    print(f"FP16 conversion failed: {e}")
             
             # Populate class filters
             self.populate_class_checkboxes()
@@ -566,7 +578,7 @@ class DroneDetectionGUI:
             self.record_btn.config(state=tk.NORMAL)
             self.status_label.config(text=f"Running ({self.detector.device.upper()})", fg='#28a745')
             
-            # Start threads
+            # Start threads AFTER model is fully loaded
             self.display_running = True
             self.display_thread = threading.Thread(target=self.display_loop, daemon=True)
             self.display_thread.start()
@@ -574,8 +586,14 @@ class DroneDetectionGUI:
             threading.Thread(target=self.process_frames, daemon=True).start()
             
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to start:\n{str(e)}")
+            import traceback
+            error_detail = traceback.format_exc()
+            messagebox.showerror("Error", f"Failed to start:\n{str(e)}\n\nDetails:\n{error_detail}")
             self.status_label.config(text="Error", fg='#dc3545')
+            # Cleanup if error
+            if self.cap:
+                self.cap.release()
+                self.cap = None
     
     def stop_detection(self):
         """Stop detection"""
